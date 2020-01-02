@@ -1,0 +1,115 @@
+# Home Media Server Docker Compose file. 
+# This compose file will install the following applications:
+#
+# 1. Portainer (port:9000 webui)
+# 2. Watchtower 
+# 3. Transmission VPN (port: 9001 webui port: 8888 proxy)
+# 4. Radarr (port: 9002 webui)
+# 5. Sonarr (port: 9003 webui)
+# 6. Jackett (port: 9004 webui)
+
+version: "3.6"
+services:
+
+  portainer:
+    image: portainer/portainer
+    container_name: portainer
+    restart: always
+    command: -H unix:///var/run/docker.sock
+    ports:
+      - "9000:9000"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ${USERDIR}/docker/portainer/data:/data
+      - ${USERDIR}/docker/shared:/shared
+
+  watchtower:
+    container_name: watchtower
+    restart: always
+    image: v2tec/watchtower
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    command: --schedule "0 0 23 * * SUN " --cleanup
+
+  tranmission-vpn:
+    container_name: transmission-vpn
+    image: haugene/transmission-openvpn
+    cap_add:
+      - NET_ADMIN
+    restart: always
+    ports: 
+      - "9001:9091"
+      - "8888:8888"
+    dns:
+      - 1.1.1.1
+      - 1.0.0.1
+    volumes:
+      - ${USERDIR}/docker/transmission-vpn:/data
+      - ${USERDIR}/docker/shared:/shared
+      - ${SHARDIR}/Downloads:/downloads
+    environment:
+      - CREATE_TUN_DEVICE=true
+      - OPENVPN_PROVIDER=${OPENVPN_PROVIDER}
+      - OPENVPN_USERNAME=${OPENVPN_USERNAME}
+      - OPENVPN_PASSWORD=${OPENVPN_PASSWORD}
+      - OPENVPN_OPTS=--inactive 3600 --ping 10 --ping-exit 60
+      - LOCAL_NETWORK=192.168.0.0/24
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+      - TRANSMISSION_RPC_AUTHENTICATION_REQUIRED=true
+      - TRANSMISSION_RPC_HOST_WHITELIST="127.0.0.1,192.168.*.*"
+      - TRANSMISSION_RPC_PASSWORD=${TRANSMISSION_RPC_PASSWORD}
+      - TRANSMISSION_RPC_USERNAME=${TRANSMISSION_RPC_USERNAME}
+      - TRANSMISSION_UMASK=002
+      - TRANSMISSION_RATIO_LIMIT=1.00
+      - TRANSMISSION_WATCH_DIR_ENABLED=true
+      - WEBPROXY_PORT=8888 
+      - WEBPROXY_ENABLED=true
+
+  radarr:
+    image: "linuxserver/radarr"
+    container_name: radarr
+    volumes:
+      - ${USERDIR}/docker/radarr:/config
+      - ${USERDIR}/docker/shared:/shared
+      - ${SHARDIR}/Downloads:/downloads
+      - ${SHARDIR}/HMS/Movies:/movies
+    ports:
+      - "9002:7878"
+    restart: always
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+
+  sonarr:
+    image: "linuxserver/sonarr"
+    container_name: sonarr
+    volumes:
+      - ${USERDIR}/docker/sonarr:/config
+      - ${USERDIR}/docker/shared:/shared
+      - ${SHARDIR}/Downloads:/downloads
+      - ${SHARDIR}/HMS/TV:/tv 
+    ports:
+      - "9003:8989"
+    restart: always
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+
+  jackett:
+    image: "linuxserver/jackett"
+    container_name: jackett
+    volumes:
+      - ${USERDIR}/docker/jackett:/config
+      - ${SHARDIR}/Downloads:/downloads
+      - ${USERDIR}/docker/shared:/shared
+    ports:
+      - "9004:9117"
+    restart: always
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
