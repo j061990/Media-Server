@@ -1,4 +1,5 @@
 
+# Home Media Server (HMS)
 HMS is a collection of applications scripted into a Docker compose and ENV file for easy deployment and requires minimal configuration. I prefer to run Plex outside of Docker, if you plan to run Plex or another media server that will need to be installed manually. HMS comprises of the following applications:
 
 * Portainer 
